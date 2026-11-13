@@ -1,0 +1,30 @@
+name: Uptime check
+# Hourly: hits /health/db of every client backend (reaches the database). A failure marks the run red and GitHub e-mails you.
+# It also counts as database activity, which keeps Free-plan Supabase projects from being paused for inactivity.
+# Repo secret CLIENT_HEALTH_URLS = JSON map, e.g. {"acme":"https://acme-api.vercel.app/health/db","beta":"https://beta-api.vercel.app/health/db"}
+# (Hourly = ~720 Actions minutes/month — inside the free allowance of a private repo.)
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe every client
+        env:
+          CLIENT_HEALTH_URLS: ${{ secrets.CLIENT_HEALTH_URLS }}
+        run: |
+          set -uo pipefail
+          [ -n "${CLIENT_HEALTH_URLS:-}" ] || { echo "Set the CLIENT_HEALTH_URLS secret (JSON map slug → https://…/health/db)"; exit 1; }
+          fail=0
+          while IFS=$'\t' read -r slug url; do
+            case "$url" in https://*) ;; *) echo "::error::$slug: URL must be https"; fail=1; continue ;; esac
+            if curl -fsS --max-time 25 --retry 2 --retry-delay 5 -o /dev/null "$url"; then
+              echo "✓ $slug"
+            else
+              echo "::error::$slug is DOWN or its database is unreachable/paused ($url)"; fail=1
+            fi
+          done < <(echo "$CLIENT_HEALTH_URLS" | jq -r 'to_entries[] | "\(.key)\t\(.value)"')
+          exit $fail

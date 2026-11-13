@@ -1,0 +1,99 @@
+{
+ "receipts": [
+  {
+   "date": "2026-10-01",
+   "receiptNo": "IN-001",
+   "lotNo": "L-1001",
+   "itemName": "قطن مسرح 30/1",
+   "quantity": 2000,
+   "notes": "مورد أ"
+  },
+  {
+   "date": "2026-10-03",
+   "receiptNo": "IN-002",
+   "lotNo": "L-1002",
+   "itemName": "بوليستر 150/48",
+   "quantity": 1200,
+   "notes": "مورد ب"
+  },
+  {
+   "date": "2026-10-05",
+   "receiptNo": "IN-003",
+   "lotNo": "L-1003",
+   "itemName": "فيسكوز 30/1",
+   "quantity": 800
+  },
+  {
+   "date": "2026-10-07",
+   "receiptNo": "IN-004",
+   "lotNo": "L-1004",
+   "itemName": "ليكرا 40D",
+   "quantity": 150
+  },
+  {
+   "date": "2026-10-10",
+   "receiptNo": "IN-005",
+   "lotNo": "L-1001",
+   "itemName": "قطن مسرح 30/1",
+   "quantity": 1000,
+   "notes": "دفعة ثانية من نفس اللوط"
+  }
+ ],
+ "runs": [
+  {
+   "date": "2026-10-05",
+   "machineCode": "M-01",
+   "fabricKg": 500,
+   "wastePercent": 2,
+   "lines": [
+    {
+     "lotNo": "L-1001",
+     "itemName": "قطن مسرح 30/1",
+     "blendPercent": 70
+    },
+    {
+     "lotNo": "L-1002",
+     "itemName": "بوليستر 150/48",
+     "blendPercent": 25
+    },
+    {
+     "lotNo": "L-1004",
+     "itemName": "ليكرا 40D",
+     "blendPercent": 5
+    }
+   ]
+  },
+  {
+   "date": "2026-10-06",
+   "machineCode": "M-02",
+   "fabricKg": 400,
+   "wastePercent": 3,
+   "lines": [
+    {
+     "lotNo": "L-1001",
+     "itemName": "قطن مسرح 30/1",
+     "blendPercent": 60
+    },
+    {
+     "lotNo": "L-1003",
+     "itemName": "فيسكوز 30/1",
+     "blendPercent": 40
+    }
+   ]
+  },
+  {
+   "date": "2026-10-08",
+   "machineCode": "M-03",
+   "fabricKg": 300,
+   "wastePercent": 1,
+   "lines": [
+    {
+     "lotNo": "L-1002",
+     "itemName": "بوليستر 150/48",
+     "blendPercent": 100
+    }
+   ]
+  }
+ ],
+ "warnings": []
+}

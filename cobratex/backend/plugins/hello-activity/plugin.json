@@ -1,0 +1,9 @@
+{
+  "name": "hello-activity",
+  "version": "1.0.0",
+  "description": "إضافة توضيحية تثبت أن نشاطًا خارجيًا يمكن أن يُضاف بلا تعديل أي كود أساسي وبلا إعادة تغليف المشروع.",
+  "enabled": true,
+  "frontendEntry": "frontend/entry.js",
+  "customElementTag": "hello-activity-widget",
+  "navLabel": "نشاط تجريبي (إضافة)"
+}

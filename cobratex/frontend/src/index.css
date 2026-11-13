@@ -1,0 +1,358 @@
+@import "tailwindcss";
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CobraTex — طبقة العرض (Presentation Layer)
+   الهوية البصرية مستخلصة من نظام "الهدى" (Navy + Gold) وطُبِّقت على كل صفحات النواة (جي تك)
+   دون تعديل أي صفحة: أُعيد تعريف مقياس ألوان slate في Tailwind ليصبح مقياس الـ Navy الخاص بالهوية،
+   فتتبدّل الأزرار والجداول والبطاقات في كل الصفحات تلقائيًا.
+   الألوان الأساسية تُحقَن وقت التشغيل من public/brand.json (انظر src/brand).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --navy: #0d1b2a;
+  --navy2: #162336;
+  --gold: #c9a84c;
+  --gold2: #e8c96a;
+  --green: #1a6b3c;
+  --green2: #22854c;
+  --red: #e74c3c;
+  --blue: #3498db;
+  --muted: #7f8c9a;
+  --border: #e0e6ed;
+  --shadow: 0 4px 20px rgba(13, 27, 42, 0.1);
+  --radius: 12px;
+  --sidebar: 260px;
+}
+
+@theme {
+  --font-sans: "Cairo", "Tajawal", "Tahoma", ui-sans-serif, system-ui, sans-serif;
+
+  --color-slate-50: #f4f6f9;
+  --color-slate-100: #eaeef3;
+  --color-slate-200: #e0e6ed;
+  --color-slate-300: #cdd5df;
+  --color-slate-400: #9aa6b4;
+  --color-slate-500: #7f8c9a;
+  --color-slate-600: #55657a;
+  --color-slate-700: #34475c;
+  --color-slate-800: var(--navy2);
+  --color-slate-900: var(--navy);
+  --color-slate-950: #08121c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-slate-50);
+  color: #2c3e50;
+}
+
+/* ── تحسينات عامة على صفحات النواة (بلا تغيير في منطقها) ───────────────────── */
+
+/* الأزرار الرئيسية: نفس مظهر .btn-primary في الهدى (Navy متدرّج + نص ذهبي) */
+button.bg-slate-900,
+a.bg-slate-900 {
+  background-image: linear-gradient(135deg, var(--navy), var(--navy2));
+  color: var(--gold2);
+  font-weight: 700;
+  box-shadow: 0 3px 12px rgba(13, 27, 42, 0.2);
+}
+button.bg-slate-900:hover:not(:disabled),
+a.bg-slate-900:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(13, 27, 42, 0.28);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 16%, transparent);
+}
+
+/* جداول داخل الغلاف الرئيسي: رأس Navy + عناوين ذهبية كما في الهدى (لا تؤثر على صفحات الطباعة) */
+.ct-main table thead {
+  background: var(--navy);
+}
+.ct-main table thead th {
+  color: var(--gold) !important;
+  font-weight: 700;
+  padding-inline: 0.75rem;
+  white-space: nowrap;
+}
+.ct-main table tbody tr:hover td {
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
+}
+.ct-main table {
+  overflow: hidden;
+}
+
+/* البطاقات البيضاء المحاطة بحلقة */
+.ct-main .rounded-xl.bg-white {
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+}
+
+/* ── الغلاف: الشريط الجانبي ─────────────────────────────────────────────────── */
+.ct-sidebar {
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy2) 100%);
+  box-shadow: -2px 0 20px rgba(0, 0, 0, 0.25);
+}
+.ct-logo-ring {
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+.ct-nav-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--gold) 60%, transparent);
+  letter-spacing: 1.2px;
+  padding: 12px 18px 5px;
+}
+.ct-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 18px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.83rem;
+  font-weight: 500;
+  border-inline-end: 3px solid transparent;
+  transition: all 0.18s;
+  user-select: none;
+}
+.ct-nav-item:hover {
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+  color: var(--gold2);
+}
+.ct-nav-item.active {
+  background: color-mix(in srgb, var(--gold) 13%, transparent);
+  color: var(--gold2);
+  border-inline-end-color: var(--gold);
+}
+.ct-nav-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.ct-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.ct-scroll::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 2px;
+}
+
+/* ── الغلاف: الشريط العلوي ───────────────────────────────────────────────── */
+.ct-topbar {
+  box-shadow: 0 2px 12px rgba(13, 27, 42, 0.08);
+}
+.ct-avatar {
+  background: linear-gradient(135deg, var(--navy), var(--navy2));
+  color: var(--gold);
+}
+.ct-cloud-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.ct-cloud-dot.online {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+.ct-cloud-dot.waking,
+.ct-cloud-dot.checking {
+  background: var(--gold);
+  animation: ct-pulse 1.2s ease-in-out infinite;
+}
+.ct-cloud-dot.offline {
+  background: var(--red);
+}
+@keyframes ct-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ── صفحة الدخول ─────────────────────────────────────────────────────────── */
+.ct-login-bg {
+  background:
+    radial-gradient(900px 500px at 85% -10%, color-mix(in srgb, var(--gold) 18%, transparent), transparent 60%),
+    linear-gradient(160deg, var(--navy) 0%, var(--navy2) 100%);
+}
+
+/* ── الإشعارات المنبثقة (Toasts) ─────────────────────────────────────────── */
+.toast-wrap {
+  position: fixed;
+  bottom: 20px;
+  inset-inline-start: 20px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: toastIn 0.3s ease;
+  min-width: 220px;
+}
+.toast-success { background: var(--green); }
+.toast-error { background: var(--red); }
+.toast-info { background: var(--blue); }
+.toast-warn { background: var(--gold); color: var(--navy); }
+@keyframes toastIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   مجموعة مكوّنات الهدى (UI Kit) — تُستخدم في لوحة التحكم وتتاح للإضافات (plugins)
+   بنفس أسماء الأصناف الأصلية لتسهيل نقل إضافات الهدى. راجع docs/PLUGINS.md
+   ════════════════════════════════════════════════════════════════════════════ */
+.page-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.page-hdr h1 { font-family: "Tajawal", var(--font-sans); font-weight: 800; font-size: 1.4rem; color: var(--navy); }
+.page-hdr p { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.kpi-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.kpi { background: #fff; border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); position: relative; overflow: hidden; display: block; transition: transform 0.2s, box-shadow 0.2s; }
+.kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(13, 27, 42, 0.15); }
+.kpi::before { content: ""; position: absolute; top: 0; inset-inline-start: 0; width: 4px; height: 100%; background: var(--kc, var(--gold)); }
+.kpi-icon { position: absolute; top: 14px; inset-inline-end: 14px; width: 38px; height: 38px; border-radius: 9px; background: var(--ib, color-mix(in srgb, var(--gold) 12%, transparent)); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+.kpi-lbl { font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.kpi-val { font-family: "Tajawal", var(--font-sans); font-size: 1.55rem; font-weight: 800; color: var(--navy); line-height: 1.1; margin-bottom: 4px; direction: ltr; text-align: end; }
+.kpi-sub { font-size: 0.68rem; color: var(--muted); }
+.kpi.warn { --kc: #f59e0b; --ib: rgba(245, 158, 11, 0.12); }
+.kpi.good { --kc: var(--green); --ib: rgba(26, 107, 60, 0.1); }
+.kpi.info { --kc: var(--blue); --ib: rgba(52, 152, 219, 0.1); }
+
+.card { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 18px; }
+.card-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 8px; }
+.card-title { font-family: "Tajawal", var(--font-sans); font-weight: 700; font-size: 0.95rem; color: var(--navy); }
+.card-badge { font-size: 0.67rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; background: color-mix(in srgb, var(--gold) 14%, transparent); color: #8a6d10; }
+
+.fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.fg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+.fg { display: flex; flex-direction: column; gap: 5px; }
+.fg label { font-size: 0.75rem; font-weight: 700; color: var(--navy); }
+.fc { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-family: inherit; font-size: 0.83rem; color: #2c3e50; background: #fff; width: 100%; }
+.fc[readonly] { background: #f7f9fb; color: var(--muted); }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: none; border-radius: 9px; font-family: inherit; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.18s; }
+.btn-primary { background: linear-gradient(135deg, var(--navy), var(--navy2)); color: var(--gold2); box-shadow: 0 3px 12px rgba(13, 27, 42, 0.2); }
+.btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: var(--navy); box-shadow: 0 3px 12px color-mix(in srgb, var(--gold) 25%, transparent); }
+.btn-outline { background: transparent; border: 1.5px solid var(--gold); color: #8a6d10; }
+.btn-outline:hover { background: color-mix(in srgb, var(--gold) 8%, transparent); }
+.btn-success { background: linear-gradient(135deg, var(--green), var(--green2)); color: #fff; }
+.btn-danger { background: linear-gradient(135deg, var(--red), #c0392b); color: #fff; }
+.btn-info { background: linear-gradient(135deg, var(--blue), #2980b9); color: #fff; }
+.btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+.btn:hover { transform: translateY(-1px); }
+
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 20px; font-size: 0.67rem; font-weight: 700; }
+.b-paid { background: rgba(26, 107, 60, 0.1); color: var(--green); }
+.b-pend { background: rgba(201, 168, 76, 0.15); color: #8a6d10; }
+.b-late { background: rgba(231, 76, 60, 0.1); color: var(--red); }
+.b-part { background: rgba(52, 152, 219, 0.1); color: var(--blue); }
+
+.tbl-wrap { overflow: auto; border-radius: 8px; border: 1px solid var(--border); }
+table.etbl { width: 100%; border-collapse: collapse; font-size: 0.81rem; }
+table.etbl thead tr { background: var(--navy); }
+table.etbl th { color: var(--gold); font-weight: 700; padding: 10px 12px; text-align: start; font-size: 0.75rem; white-space: nowrap; }
+table.etbl td { padding: 9px 12px; border-bottom: 1px solid #f0f3f7; vertical-align: middle; }
+table.etbl tr:last-child td { border-bottom: none; }
+
+.sum-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: var(--navy); border-radius: 12px; padding: 16px 20px; margin: 14px 0; }
+.sum-item { text-align: center; }
+.sum-lbl { font-size: 0.62rem; color: rgba(255, 255, 255, 0.5); font-weight: 600; margin-bottom: 3px; }
+.sum-val { font-family: "Tajawal", var(--font-sans); font-size: 1rem; font-weight: 800; color: var(--gold2); }
+
+.chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 160px; padding-bottom: 22px; position: relative; direction: ltr; }
+.chart-bars::after { content: ""; position: absolute; bottom: 22px; left: 0; right: 0; height: 1px; background: #edf0f4; }
+.cb-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; gap: 2px; }
+.cb-pair { display: flex; align-items: flex-end; gap: 2px; width: 100%; height: 100%; justify-content: center; }
+.cb { width: 100%; max-width: 18px; border-radius: 4px 4px 0 0; min-height: 2px; cursor: default; transition: opacity 0.2s; }
+.cb:hover { opacity: 0.8; }
+.cb-gold { background: linear-gradient(180deg, var(--gold2), var(--gold)); }
+.cb-green { background: linear-gradient(180deg, var(--green2), var(--green)); }
+.cb-lbl { font-size: 0.58rem; color: var(--muted); position: absolute; bottom: -18px; white-space: nowrap; }
+
+@media (max-width: 1024px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-grid.cols-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .fg2, .fg3 { grid-template-columns: 1fr; }
+  .sum-bar { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .kpi-grid, .kpi-grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+/* ── الطباعة ─────────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  .ct-sidebar, .ct-topbar, .ct-no-print { display: none !important; }
+  .ct-main-wrap { margin: 0 !important; }
+  body { background: #fff !important; }
+  .ct-main { padding: 0 !important; overflow: visible !important; }
+  .ct-main button, .ct-main input[type=checkbox], .ct-main select, .ct-main .btn { display: none !important; } /* أزرار الإجراءات لا تُطبع */
+  .ct-main table { width: 100% !important; font-size: 10pt; border-collapse: collapse; page-break-inside: auto; }
+  .ct-main tr { page-break-inside: avoid; }
+  .ct-main th, .ct-main td { border: 1px solid #94a3b8 !important; padding: 3px 6px !important; }
+  .ct-main thead { display: table-header-group; }
+  .ct-main a { color: inherit !important; text-decoration: none !important; }
+}
+.ct-print-only { display: none; }
+@media print { .ct-print-only { display: block !important; } }
+
+/* ===== تجاوب الجوال/التابلت (2.20.1) ===== */
+html, body { overflow-x: hidden; }
+body { padding-inline: env(safe-area-inset-left) env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+@media (max-width: 1023px) {
+  /* الجداول العريضة تتمرّر أفقيًا داخل الشاشة بدل أن تُوسّع الصفحة */
+  main table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  main input, main select, main textarea { font-size: 16px; } /* يمنع تكبير iOS التلقائي عند التركيز */
+  main button, main select, main input[type='checkbox'] { min-height: 38px; }
+}
+@media (max-width: 640px) { main h1 { font-size: 1.1rem; } }
+@media print { main table { display: table !important; overflow: visible !important; white-space: normal !important; } }
+
+/* ── جداول → بطاقات على الجوال (TableCards.tsx) ── */
+.ct-main { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+
+@media screen and (max-width: 640px) {
+  .ct-main table.ct-cards,
+  .ct-main table.ct-cards tbody,
+  .ct-main table.ct-cards tr,
+  .ct-main table.ct-cards td { display: block; width: 100% !important; }
+  .ct-main table.ct-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ct-main table.ct-cards tr { border: 1px solid #e3e8ef; border-radius: 12px; margin: 0 0 10px; padding: 6px 12px; background: #fff; }
+  .ct-main table.ct-cards tr:hover td { background: transparent; }
+  .ct-main table.ct-cards td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 0; border: 0; text-align: end; }
+  .ct-main table.ct-cards td::before { content: attr(data-label); flex: 0 0 38%; font-weight: 700; font-size: 0.72rem; color: var(--muted); text-align: start; }
+  .ct-main table.ct-cards td:empty { display: none; }
+  .ct-main table.ct-cards td[data-label=""]::before { content: none; }
+  button, [role="button"], select, input:not([type="checkbox"]):not([type="radio"]) { min-height: 40px; }
+}
+
+/* بطاقات الجوال: تلغي تمرير الجدول الأفقي وعدم الالتفاف المفروضَين أعلاه (تجاوب 2.20.1) */
+@media screen and (max-width: 640px) {
+  .ct-main table.ct-cards { overflow: visible; white-space: normal; }
+}

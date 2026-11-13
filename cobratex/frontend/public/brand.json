@@ -1,0 +1,35 @@
+{
+  "_readme": "ملف الهوية المركزي (White-label). عدّل القيم هنا فقط ثم نفّذ: npm run brand:apply (أو أعد النشر). لا حاجة لتعديل أي كود. على الاستضافة يمكن استبدال هذا الملف وحده بلا إعادة بناء.",
+
+  "appName": "كوبرا تكس",
+  "appNameEn": "CobraTex",
+  "tagline": "نظام إدارة موارد المؤسسات المتكامل",
+
+  "logoUrl": "/brand/emblem.png",
+  "logoFullUrl": "/brand/logo-full.jpg",
+  "faviconUrl": "/favicon.png",
+
+  "companyName": "كوبرا تكس",
+  "website": "",
+  "supportPhone": "",
+  "supportEmail": "",
+
+  "developer": {
+    "name": "شركة حي تك",
+    "creditText": "تم التطوير بواسطة شركة حي تك - جميع الحقوق محفوظة",
+    "phone": "01014868778",
+    "whatsapp": "201014868778",
+    "url": "",
+    "showCredit": true
+  },
+
+  "theme": {
+    "navy": "#0D1B2A",
+    "navy2": "#162336",
+    "gold": "#C9A84C",
+    "gold2": "#E8C96A"
+  },
+
+  "defaultTenantId": "",
+  "installPrompt": true
+}

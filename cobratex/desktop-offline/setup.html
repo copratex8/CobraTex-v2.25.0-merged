@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>إعداد كوبرا تكس</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0D1B2A;color:#fff;font-family:Tajawal,Segoe UI,Tahoma,sans-serif}
+.box{width:min(440px,92vw);background:#13263a;border:1px solid #2a4560;border-radius:16px;padding:28px}
+h1{margin:0 0 6px;color:#C9A84C;font-size:1.4rem}p{margin:0 0 18px;color:#9fb3c8;font-size:.85rem}
+label{display:block;font-size:.8rem;margin:12px 0 4px;color:#cfd9e3}input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid #2a4560;background:#0D1B2A;color:#fff;font:inherit}
+button{margin-top:20px;width:100%;padding:12px;border:0;border-radius:10px;background:linear-gradient(135deg,#C9A84C,#e3c775);color:#0D1B2A;font:inherit;font-weight:800;cursor:pointer}
+.err{color:#ff8a8a;font-size:.8rem;margin-top:10px;min-height:1em}.cr{margin-top:18px;text-align:center;font-size:.7rem;color:#6f879d}
+</style></head><body><form class="box" id="f">
+<h1>مرحبًا بك في كوبرا تكس</h1><p>أنشئ حساب المالك وبيانات الشركة (مرة واحدة فقط).</p>
+<label>اسم الشركة</label><input name="companyName" required>
+<label>اسم المالك</label><input name="ownerName" required>
+<label>البريد الإلكتروني (اسم الدخول)</label><input name="email" type="email" required dir="ltr">
+<label>كلمة المرور (8 أحرف على الأقل)</label><input name="password" type="password" minlength="8" required dir="ltr">
+<button>إنشاء وبدء الاستخدام</button><div class="err" id="e"></div>
+<div class="cr">تم التطوير بواسطة شركة حي تك - جميع الحقوق محفوظة · <span dir="ltr">01014868778</span></div></form>
+<script>
+fetch('/__setup/state').then(r=>r.json()).then(s=>{if(!s.needsSetup)location.href='/'});
+document.getElementById('f').onsubmit=async e=>{e.preventDefault();const b=Object.fromEntries(new FormData(e.target));
+ const r=await fetch('/__setup/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+ const j=await r.json().catch(()=>({}));if(r.ok)location.href='/';else document.getElementById('e').textContent=j.error||'تعذّر الإعداد'};
+</script></body></html>

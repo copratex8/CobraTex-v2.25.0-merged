@@ -1,0 +1,44 @@
+const http=require('http'),fs=require('fs'),path=require('path');const {chromium}=require('playwright');
+const P='/home/claude/cobratex/developer-panel';const T='00000000-0000-0000-0000-0000000000a1';const calls=[];
+let lic={tenantId:T,planType:'annual',startsAt:'2026-01-01T00:00:00Z',expiresAt:'2026-12-01T00:00:00Z',graceDays:7,expiredMode:'readonly',bindingMode:'device',allowedDomains:[],maxDevices:3,maxUsers:5,maxBranches:null,notes:''};
+const devs=[{device_id:'abcdef0123456789abcd',label:'',user_agent:'Chrome',revoked:false,first_seen:'2026-10-01T10:00:00Z',last_seen:'2026-11-06T10:00:00Z'}];
+const srv=http.createServer((q,r)=>{const u=new URL(q.url,'http://x');let body='';q.on('data',c=>body+=c);q.on('end',()=>{
+ if(u.pathname.startsWith('/api')){const p=u.pathname.slice(4);if(q.method!=='GET')calls.push(q.method+' '+p+' '+body);
+  r.setHeader('content-type','application/json');r.setHeader('access-control-allow-origin','*');
+  if(p==='/developer/login')return r.end('{"token":"t"}');
+  if(p==='/developer/overview')return r.end(JSON.stringify({global:{status:'active',message:''},tenants:[{id:T,name:'t',company_name:'المصنع',status:'active',message:'',created_at:'2026-01-01'}],announcements:[],audit:[]}));
+  if(p==='/developer/activity')return r.end('null'.replace('null','{"modules":[],"profiles":[],"companies":[]}'));
+  if(p==='/developer/licenses')return r.end(JSON.stringify({plans:['trial','monthly','annual','perpetual','custom'],licenseRequired:false,items:[{tenantId:T,name:'t',companyName:'المصنع',license:lic,state:'active',daysLeft:24,usage:{users:2,branches:1,devices:1}}]}));
+  if(p==='/developer/tenants'&&q.method==='POST')return r.end(JSON.stringify({tenantId:T,companyId:'c',ownerEmail:'o@x.com',ownerPassword:'GenPass12345',link:'?c=acme',warnings:[]}));
+  if(p.endsWith('/branding'))return r.end(JSON.stringify({slug:'acme',brand:{appName:'أكمي',theme:{gold:'#123456'}},domains:['erp.acme.com']}));
+  if(p.endsWith('/users'))return r.end(JSON.stringify([{id:'u1',full_name:'المدير',email:'a@x.com',is_active:true,last_login_at:null}]));
+  if(p.endsWith('/reset-password'))return r.end('{"password":"NewPass98765"}');
+  if(p.endsWith('/devices'))return r.end(JSON.stringify(devs));
+  r.statusCode=204;return r.end();}
+ let f=path.join(P,u.pathname==='/'?'index.html':u.pathname);if(!fs.existsSync(f))f=P+'/index.html';
+ r.setHeader('content-type',{'.js':'text/javascript','.css':'text/css','.html':'text/html'}[path.extname(f)]||'application/octet-stream');r.end(fs.readFileSync(f));});}).listen(8766,async()=>{
+ const b=await chromium.launch();const pg=await b.newPage({viewport:{width:1280,height:1000}});const errs=[];pg.on('pageerror',e=>errs.push(e.message));pg.on('console',m=>m.type()==='error'&&!/Failed to load resource|fonts/.test(m.text())&&errs.push(m.text()));
+ await pg.addInitScript(()=>{localStorage.setItem('cx_dev_api','http://127.0.0.1:8766');sessionStorage.setItem('cx_dev_token','t')});
+ await pg.goto('http://127.0.0.1:8766/');await pg.waitForTimeout(800);
+ console.log('license section:',await pg.locator('.lic-co').count(),'| header:',(await pg.locator('h2:has-text("التراخيص")').count()));
+ await pg.screenshot({path:'/tmp/smoke/panel-lic.png',fullPage:true});
+ await pg.locator('.lic-preset[data-plan="monthly"]').first().click();
+ await pg.locator('.lic-bind').first().selectOption('domain_device');
+ await pg.locator('.lic-dom').first().fill('App.Example.com\n*.corp.com');
+ await pg.locator('.lic-save').first().click();await pg.waitForTimeout(400);
+ await pg.locator('.lic-ext[data-n="3"]').first().click();await pg.waitForTimeout(400);
+ await pg.locator('.lic-devs').first().click();await pg.waitForTimeout(400);
+ const dev=await pg.locator('.dev-toggle').count();
+ await pg.locator('.dev-toggle').first().click();await pg.waitForTimeout(400);
+ await pg.locator('summary:has-text("إنشاء عميل جديد")').click();
+ await pg.fill('.nc-tenant','عميل');await pg.fill('.nc-legal','شركة');await pg.fill('.nc-email','o@x.com');await pg.fill('.nc-slug','acme');await pg.selectOption('.nc-plan','trial');await pg.fill('#frontUrl','https://app.example.com');await pg.locator('#frontUrl').blur();
+ await pg.locator('#ncCreate').click();await pg.waitForTimeout(500);
+ console.log('create result:',(await pg.locator('#ncResult').innerText()).replace(/\n/g,' | '));
+ await pg.locator('.cl-co summary').first().click();await pg.locator('.cl-load').first().click();await pg.waitForTimeout(500);
+ console.log('slug field:',await pg.inputValue('.b-slug'),'| name:',await pg.inputValue('.b-appName'),'| domains:',await pg.inputValue('.b-domains'));
+ await pg.fill('.b-appNameEn','Acme');await pg.locator('.b-save').click();await pg.waitForTimeout(500);
+ await pg.locator('.cl-co summary').first().click().catch(()=>{});await pg.locator('.cl-load').first().click().catch(()=>{});await pg.waitForTimeout(400);
+ await pg.locator('.u-reset').first().click();await pg.locator('.modal-bg button:has-text("إعادة ضبط")').click().catch(()=>{});await pg.waitForTimeout(500);
+ console.log('reset out:',(await pg.locator('.u-out').innerText().catch(()=>'(none)')));
+ console.log('devices rows shown:',dev);console.log(calls.join('\n'));console.log('errors:',errs.length?errs:'none');
+ await b.close();srv.close();});

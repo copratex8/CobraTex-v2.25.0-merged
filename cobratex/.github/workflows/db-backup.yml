@@ -1,0 +1,49 @@
+name: Supabase nightly backup
+# Daily pg_dump, encrypted with GPG, kept as a workflow artifact for 14 days.
+# Also keeps a Free-plan project from being paused for inactivity (the dump is daily DB activity).
+# Required repo secrets: CLIENT_DB_URLS (JSON map slug→session pooler URL) [or SUPABASE_DB_URL for one DB], BACKUP_PASSPHRASE.
+# Each client is dumped separately (a failure for one does not stop the others; the job is marked failed).
+# KEEP THE REPOSITORY PRIVATE — this is accounting data (the dump is encrypted, but defense in depth).
+on:
+  schedule:
+    - cron: "0 23 * * *"   # 23:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump + encrypt (every client)
+        env:
+          # JSON map { "acme": "postgresql://...session-pooler...", "beta": "..." }  — or the single legacy secret below
+          CLIENT_DB_URLS: ${{ secrets.CLIENT_DB_URLS }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq jq >/dev/null
+          MAP="${CLIENT_DB_URLS:-}"
+          if [ -z "$MAP" ] && [ -n "${SUPABASE_DB_URL:-}" ]; then MAP="$(jq -n --arg u "$SUPABASE_DB_URL" '{default:$u}')"; fi
+          [ -n "$MAP" ] || { echo "Set CLIENT_DB_URLS (JSON map) or SUPABASE_DB_URL"; exit 1; }
+          fail=0
+          while IFS=$'\t' read -r slug url; do
+            echo "::add-mask::$url"
+            echo "→ $slug"
+            if pg_dump "$url" --schema=public --no-owner --no-privileges -Fc -f "$slug.dump"; then
+              gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" -c -o "cobratex-$slug-$(date -u +%F).dump.gpg" "$slug.dump"
+            else
+              echo "::error::backup FAILED for $slug"; fail=1
+            fi
+            rm -f "$slug.dump"
+          done < <(echo "$MAP" | jq -r 'to_entries[] | "\(.key)\t\(.value)"')
+          exit $fail
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobratex-backup
+          path: cobratex-*.dump.gpg
+          retention-days: 14

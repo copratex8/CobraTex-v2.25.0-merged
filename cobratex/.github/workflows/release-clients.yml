@@ -1,0 +1,104 @@
+name: Release to clients
+# One click updates every client (or chosen ones). Each client has its OWN Vercel account/projects, so we deploy with the
+# Vercel CLI + that client's token (no GitHub↔Vercel link needed, and no client ever gets access to this repository).
+# Prerequisites per client: see docs/MULTI-CLIENT_AR.md. Secret CLIENTS_JSON =
+#   { "acme": { "vercel_token": "...", "org_id": "team_or_user_id", "frontend_project_id": "prj_...", "backend_project_id": "prj_..." } }
+# In each Vercel project set Root Directory = frontend (or backend); this workflow runs from the repo root.
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: "Client slugs, comma separated, or: all"
+        required: true
+        default: "all"
+      target:
+        description: "What to deploy"
+        type: choice
+        options: [both, frontend, backend]
+        default: both
+
+concurrency:
+  group: release-clients
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Contract + secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tools/check-schema.mjs
+      - run: node tools/secret-scan.mjs
+
+  plan:
+    needs: checks
+    runs-on: ubuntu-latest
+    outputs:
+      slugs: ${{ steps.p.outputs.slugs }}
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - id: p
+        env:
+          CLIENTS_JSON: ${{ secrets.CLIENTS_JSON }}
+          WANT: ${{ inputs.slugs }}
+        run: |
+          node -e "
+            const all = Object.keys(JSON.parse(process.env.CLIENTS_JSON));
+            const want = process.env.WANT.trim();
+            const pick = want === 'all' ? all : want.split(',').map((s) => s.trim()).filter(Boolean);
+            const bad = pick.filter((s) => !all.includes(s));
+            if (bad.length || pick.length === 0) { console.error('unknown or empty client list: ' + bad.join(',')); process.exit(1); }
+            console.log('slugs=' + JSON.stringify(pick));
+          " >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy ${{ matrix.slug }}
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        slug: ${{ fromJSON(needs.plan.outputs.slugs) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Load client config (masked)
+        env:
+          CLIENTS_JSON: ${{ secrets.CLIENTS_JSON }}
+          SLUG: ${{ matrix.slug }}
+        run: |
+          node -e "
+            const c = JSON.parse(process.env.CLIENTS_JSON)[process.env.SLUG];
+            for (const k of ['vercel_token','org_id','frontend_project_id','backend_project_id']) if (!c[k]) { console.error('missing ' + k); process.exit(1); }
+            const out = [];
+            for (const v of [c.vercel_token, c.org_id, c.frontend_project_id, c.backend_project_id]) console.log('::add-mask::' + v);
+            out.push('VERCEL_TOKEN=' + c.vercel_token, 'CX_ORG=' + c.org_id, 'CX_FE=' + c.frontend_project_id, 'CX_BE=' + c.backend_project_id);
+            require('fs').appendFileSync(process.env.GITHUB_ENV, out.join('\n') + '\n');
+          "
+
+      - name: Deploy frontend
+        if: ${{ inputs.target != 'backend' }}
+        env:
+          VERCEL_ORG_ID: ${{ env.CX_ORG }}
+          VERCEL_PROJECT_ID: ${{ env.CX_FE }}
+        run: |
+          npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+
+      - name: Deploy backend
+        if: ${{ inputs.target != 'frontend' }}
+        env:
+          VERCEL_ORG_ID: ${{ env.CX_ORG }}
+          VERCEL_PROJECT_ID: ${{ env.CX_BE }}
+        run: |
+          rm -rf .vercel
+          npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"

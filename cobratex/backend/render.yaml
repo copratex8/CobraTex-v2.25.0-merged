@@ -1,0 +1,45 @@
+# CobraTex — Render Blueprint: نشر الباك إند مجانًا بالكامل على Render (Free Web Service).
+# ملاحظة: خطة Render المجانية لا توفر PostgreSQL مجانيًا دائمًا (اقتصرت على 90 يومًا تجريبيًا في
+# سياسة Render الحالية) — استخدم Neon أو Supabase (PostgreSQL مجاني دائم) والصق رابط الاتصال في
+# DATABASE_URL يدويًا من لوحة Render بعد النشر (متغير سرّي، لا يُكتب هنا).
+#
+# الاستخدام: من لوحة Render → New → Blueprint → اربط هذا المستودع → Render يقرأ هذا الملف تلقائيًا.
+services:
+  - type: web
+    name: cobratex-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false # اضبطه يدويًا من لوحة Render: رابط Supabase (Session pooler) أو Neon
+      - key: DATABASE_SSL
+        value: auto
+      - key: DB_POOL_MAX
+        value: 5
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # يحمي POST /api/bootstrap من إنشاء مستأجرين بلا حد من أي زائر — إلزامي في الإنتاج.
+      # وثِّق القيمة عندك (مدير كلمات مرور)، ومرِّرها في ترويسة x-bootstrap-secret عند إنشاء كل عميل جديد.
+      - key: BOOTSTRAP_SECRET
+        generateValue: true
+      # كلمة مرور لوحة المطور الخارجية (التحكم عن بُعد). احفظها في مدير كلمات مرور.
+      - key: DEVELOPER_SECRET
+        generateValue: true
+      # اختياريان — لتفعيل الإشعارات الفورية عن بُعد (Web Push)، وُلِّدا محليًا بـ:
+      #   node -e "console.log(require('web-push').generateVAPIDKeys())"
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:support@example.com
+      # اختياري — لتفعيل فحص التحديث الخارجي (راجع README قسم 5)
+      - key: UPDATE_FEED_URL
+        sync: false

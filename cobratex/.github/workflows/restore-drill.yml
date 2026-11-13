@@ -1,0 +1,69 @@
+name: Restore drill
+# A backup you have never restored is a hope, not a backup. Monthly (and on demand) this job:
+#   1) downloads the latest successful nightly backup artifact,
+#   2) decrypts every client's dump and checks it is readable,
+#   3) restores each one into a throw-away PostgreSQL 17, rebuilt from the repo's migrations,
+#   4) verifies row counts exist and that posted journal entries still balance (debit = credit).
+# Needs repo secret BACKUP_PASSPHRASE. Nothing leaves the runner.
+on:
+  schedule:
+    - cron: "30 4 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    services:
+      pg:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TARGET: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      GH_TOKEN: ${{ github.token }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Download the latest successful nightly backup
+        run: |
+          set -euo pipefail
+          RUN_ID="$(gh run list --workflow db-backup.yml --status success --limit 1 --json databaseId -q '.[0].databaseId')"
+          [ -n "$RUN_ID" ] || { echo "::error::no successful db-backup run found (artifacts expire after 14 days)"; exit 1; }
+          gh run download "$RUN_ID" -n cobratex-backup -D backups
+          ls -la backups
+      - name: Build the schema in the scratch database
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.TARGET }}
+          JWT_ACCESS_SECRET: drill-only-access-secret
+          JWT_REFRESH_SECRET: drill-only-refresh-secret
+          PORT: "4001"
+          NODE_ENV: test
+        run: |
+          npm install
+          npm run migrate
+      - name: Restore every client's backup and verify it
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(backups/cobratex-*.dump.gpg)
+          [ ${#files[@]} -gt 0 ] || { echo "::error::artifact contains no .dump.gpg files"; exit 1; }
+          for f in "${files[@]}"; do
+            echo "::group::$f"
+            bash tools/restore-backup.sh "$f" "$TARGET" --wipe --yes
+            echo "::endgroup::"
+          done

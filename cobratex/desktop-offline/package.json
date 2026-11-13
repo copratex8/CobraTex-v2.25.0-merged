@@ -1,0 +1,67 @@
+{
+  "name": "cobratex-desktop",
+  "productName": "CobraTex",
+  "version": "2.24.1",
+  "description": "كوبرا تكس — تطبيق سطح المكتب (Windows) بخادم وقاعدة بيانات مضمَّنين",
+  "main": "main.js",
+  "author": "Hi-Tech (حي تك)",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "prepare:payload": "node scripts/prepare.js",
+    "start": "electron .",
+    "dist": "node scripts/prepare.js && electron-builder --win --x64",
+    "dist:dir": "node scripts/prepare.js && electron-builder --win --x64 --dir"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^17.4.2",
+    "embedded-postgres": "^18.0.0-beta.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "kysely": "^0.29.5",
+    "multer": "^2.4.0",
+    "pg": "^8.23.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.hitech.cobratex",
+    "productName": "CobraTex",
+    "copyright": "تم التطوير بواسطة شركة حي تك - جميع الحقوق محفوظة",
+    "asar": true,
+    "asarUnpack": ["node_modules/@embedded-postgres/**"],
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": [
+      "main.js", "server.js", "setup.html", "package.json",
+      "payload/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/{test,tests,__tests__,docs,example,examples}/**",
+      "!node_modules/**/*.{md,map,ts}"
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }],
+      "icon": "build/icon.ico",
+      "artifactName": "CobraTex-${version}-${arch}-${target}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CobraTex كوبرا تكس",
+      "language": "1025"
+    }
+  }
+}

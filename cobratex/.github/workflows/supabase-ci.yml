@@ -1,0 +1,97 @@
+name: Supabase checks
+# 1) contract: static check, seconds, no DB.   2) sql: boots a REAL local Supabase (Postgres + Auth + Storage),
+# applies backend migrations 0001..N, then our supabase/migrations, then runs supabase/tests/rls_isolation.sql.
+# 3) pwa: proves the build emits sw.js + manifest.webmanifest.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: supabase-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Schema / permission contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tools/check-schema.mjs
+      - run: node tools/secret-scan.mjs
+
+  sql:
+    name: Migrations + RLS tests on local Supabase
+    runs-on: ubuntu-latest
+    needs: contract
+    env:
+      DB: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+
+      # `supabase start` auto-applies supabase/migrations — they must run AFTER the backend schema, so park them.
+      - name: Start local Supabase
+        run: |
+          mkdir -p "$RUNNER_TEMP/sb" && mv supabase/migrations "$RUNNER_TEMP/sb/migrations"
+          supabase init --force
+          supabase start
+
+      - name: Backend migrations (schema 0001..N)
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.DB }}
+          JWT_ACCESS_SECRET: test-only-access-secret
+          JWT_REFRESH_SECRET: test-only-refresh-secret
+          PORT: "4001"
+          NODE_ENV: test
+        run: |
+          npm install
+          npm run migrate
+
+      - name: Supabase migrations (all)
+        run: |
+          for f in $(ls "$RUNNER_TEMP"/sb/migrations/*.sql | sort); do
+            echo "::group::$f"; psql "$DB" -v ON_ERROR_STOP=1 -f "$f"; echo "::endgroup::"
+          done
+
+      - name: SQL tests (RLS isolation · remote control · auth sync)
+        run: |
+          for t in supabase/tests/*.sql; do
+            echo "::group::$t"; psql "$DB" -v ON_ERROR_STOP=1 -f "$t"; echo "::endgroup::"
+          done
+
+      - name: Re-run migrations (must be idempotent)
+        run: |
+          for f in $(ls "$RUNNER_TEMP"/sb/migrations/*.sql | sort); do psql "$DB" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null; done
+
+  pwa:
+    name: PWA build artifacts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-dummy-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+      - name: Verify service worker + manifest
+        run: |
+          test -f dist/sw.js || { echo "dist/sw.js missing"; exit 1; }
+          test -f dist/manifest.webmanifest || { echo "manifest missing"; exit 1; }
+          node -e "const m=JSON.parse(require('fs').readFileSync('dist/manifest.webmanifest','utf8')); if(!m.name||!m.icons?.length||m.display!=='standalone') {console.error('bad manifest',m); process.exit(1)}; console.log('manifest ok:', m.name)"
+          test "$(grep -c 'rel=\"manifest\"' dist/index.html)" = "1" || { echo "expected exactly one manifest link in dist/index.html"; exit 1; }
+          ! grep -R "service_role" dist || { echo "service_role key leaked into the bundle!"; exit 1; }
+          test -z "$(find dist -name '*.map' | head -1)" || { echo "source maps found in dist (they expose your TypeScript sources)"; exit 1; }
+          ! grep -Rl "sourceMappingURL" dist/assets >/dev/null 2>&1 || { echo "sourceMappingURL comment found"; exit 1; }

@@ -1,0 +1,59 @@
+name: Build Windows installer (.exe)
+# Produces a thin installer that only opens YOUR hosted app. The client receives this .exe — never the code.
+# Run: Actions -> "Build Windows installer" -> Run workflow -> enter the client's app URL (https).
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "Hosted app URL, e.g. https://client1.vercel.app"
+        required: true
+      product_name:
+        description: "Installer/app name shown to the client"
+        required: true
+        default: "CobraTex"
+      slug:
+        description: "Short ASCII id (letters/digits), e.g. client1"
+        required: true
+        default: "cobratex"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-shell
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Write config (inputs passed via env, never interpolated into the script)
+        shell: bash
+        env:
+          APP_URL: ${{ inputs.app_url }}
+          PRODUCT_NAME: ${{ inputs.product_name }}
+        run: |
+          node -e "
+            const u = new URL(process.env.APP_URL);
+            if (u.protocol !== 'https:') { console.error('app_url must be https'); process.exit(1); }
+            require('fs').writeFileSync('config.json', JSON.stringify({ appUrl: u.toString(), title: process.env.PRODUCT_NAME }));
+          "
+          cp ../frontend/public/icon-512.png build/icon.png
+
+      - run: npm install
+      - name: Build installer
+        shell: bash
+        env:
+          PRODUCT_NAME: ${{ inputs.product_name }}
+          SLUG: ${{ inputs.slug }}
+          # Optional code signing (removes the Windows SmartScreen warning). Add these repo secrets if you own a certificate:
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          [[ "$SLUG" =~ ^[A-Za-z0-9]+$ ]] || { echo "slug must be letters/digits only"; exit 1; }
+          npx electron-builder --win nsis --x64 "-c.productName=$PRODUCT_NAME" "-c.appId=com.cobratex.$SLUG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ inputs.slug }}
+          path: desktop-shell/dist/*.exe
+          retention-days: 30

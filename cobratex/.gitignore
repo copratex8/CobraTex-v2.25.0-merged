@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+!.env.supabase.example
+*.local
+.removed-by-pack/
+supabase/.temp
+supabase/.branches
+*.dump
+*.dump.gpg
+clients/

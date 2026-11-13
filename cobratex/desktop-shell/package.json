@@ -1,0 +1,23 @@
+{
+  "name": "cobratex-desktop-shell",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Thin desktop wrapper: opens the HOSTED CobraTex web app. Contains NO business code, NO database, NO backend.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "build": {
+    "appId": "com.cobratex.shell",
+    "productName": "CobraTex",
+    "files": ["main.js", "offline.html", "config.json", "build/icon.png"],
+    "directories": { "output": "dist" },
+    "win": { "target": "nsis", "icon": "build/icon.png" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "deleteAppDataOnUninstall": false }
+  }
+}

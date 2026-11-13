@@ -1,0 +1,4 @@
+{"/accounting/reports/trial-balance":{"asOfDate":"2026-11-07","fromDate":null,"accounts":[],"totals":{"debit":0,"credit":0}},
+"/inventory/reports/valuation":{"warehouseId":null,"lines":[],"totalValue":"0"},
+"/sales/reports/summary":{"fromDate":"2026-01-01","toDate":"2026-11-07","groupBy":"item","lines":[],"grandTotal":"0"},
+"/purchasing/reports/summary":{"fromDate":"2026-01-01","toDate":"2026-11-07","groupBy":"item","lines":[],"grandTotal":"0"}}

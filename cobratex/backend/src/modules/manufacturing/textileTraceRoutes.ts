@@ -1,0 +1,55 @@
+import { Router } from 'express';
+import { validate } from '@/middleware/validate';
+import { idParamSchema } from '@/shared/zodSchemas';
+import * as svc from '@/modules/manufacturing/textileTraceService';
+
+export const textileTraceRouter = Router();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const h = (fn: (req: any) => Promise<unknown> | unknown, status = 200) => async (req: any, res: any, next: any) => { try { res.status(status).json(await fn(req)); } catch (e) { next(e); } };
+const id = (r: any) => String(r.params.id); // eslint-disable-line @typescript-eslint/no-explicit-any
+import * as yl from '@/modules/manufacturing/yarnLedger';
+textileTraceRouter.get('/textile/yarn-ledger', validate({ query: yl.ledgerSchema }), h((r) => yl.ledger(r.ctx, r.query)));
+textileTraceRouter.get('/textile/yarn-ledger/lot', validate({ query: yl.lotCardSchema }), h((r) => yl.lotCard(r.ctx, r.query)));
+textileTraceRouter.get('/textile/yarn-ledger/order/:id/cost', validate({ params: idParamSchema }), h((r) => yl.orderYarnCost(r.ctx, id(r))));
+textileTraceRouter.get('/textile/yarn-ledger/receipts', validate({ query: yl.listSchema }), h((r) => yl.listReceipts(r.ctx, r.query)));
+textileTraceRouter.get('/textile/yarn-ledger/runs', validate({ query: yl.listSchema }), h((r) => yl.listRuns(r.ctx, r.query)));
+textileTraceRouter.post('/textile/yarn-ledger/receipts', validate({ body: yl.receiptSchema }), h((r) => yl.createReceipt(r.ctx, r.body), 201));
+textileTraceRouter.post('/textile/yarn-ledger/runs', validate({ body: yl.runSchema }), h((r) => yl.createRun(r.ctx, r.body), 201));
+textileTraceRouter.post('/textile/yarn-ledger/import', validate({ body: yl.importSchema }), h((r) => yl.importData(r.ctx, r.body)));
+textileTraceRouter.post('/textile/yarn-ledger/receipts/:id/cancel', validate({ params: idParamSchema, body: yl.cancelSchema }), h((r) => yl.cancelReceipt(r.ctx, id(r), r.body)));
+textileTraceRouter.post('/textile/yarn-ledger/runs/:id/cancel', validate({ params: idParamSchema, body: yl.cancelSchema }), h((r) => yl.cancelRun(r.ctx, id(r), r.body)));
+textileTraceRouter.get('/textile/trace', validate({ query: svc.traceQuerySchema }), h((r) => svc.trace(r.ctx, r.query)));
+textileTraceRouter.post('/textile/material-lots', validate({ body: svc.lotBodySchema }), h((r) => svc.recordLot(r.ctx, r.body), 201));
+textileTraceRouter.get('/textile/production-orders/:id/material-lots', validate({ params: idParamSchema }), h((r) => svc.listOrderLots(r.ctx, id(r))));
+textileTraceRouter.delete('/textile/material-lots/:id', validate({ params: idParamSchema }), h((r) => svc.deleteLot(r.ctx, id(r))));
+textileTraceRouter.get('/textile/claims', validate({ query: svc.claimQuerySchema }), h((r) => svc.listClaims(r.ctx, r.query)));
+textileTraceRouter.get('/textile/claims/report', validate({ query: svc.claimQuerySchema }), h((r) => svc.claimsReport(r.ctx, r.query)));
+textileTraceRouter.post('/textile/claims', validate({ body: svc.claimBodySchema }), h((r) => svc.createClaim(r.ctx, r.body), 201));
+textileTraceRouter.get('/textile/claims/:id', validate({ params: idParamSchema }), h((r) => svc.getClaim(r.ctx, id(r))));
+textileTraceRouter.post('/textile/claims/:id/status', validate({ params: idParamSchema, body: svc.claimStatusSchema }), h((r) => svc.updateClaimStatus(r.ctx, id(r), r.body)));
+import * as stk from '@/modules/manufacturing/textileFabricStock';
+textileTraceRouter.get('/textile/convert/fabric', validate({ query: stk.convSchema }), h((r) => stk.convert(r.ctx, r.query)));
+textileTraceRouter.get('/textile/reports/roll-stock', validate({ query: stk.stockQuerySchema }), h((r) => stk.rollStock(r.ctx, r.query)));
+import * as cc from '@/modules/manufacturing/textileCostCard';
+textileTraceRouter.get('/textile/production-orders/:id/cost-card', validate({ params: idParamSchema, query: cc.costQuerySchema }), h((r) => cc.costCard(r.ctx, id(r), r.query)));
+textileTraceRouter.get('/textile/reports/order-costs', validate({ query: cc.costListSchema }), h((r) => cc.costRanking(r.ctx, r.query)));
+import * as pf from '@/modules/manufacturing/textileProfitability';
+textileTraceRouter.get('/textile/reports/profitability', validate({ query: pf.profitQuerySchema }), h((r) => pf.profitability(r.ctx, r.query)));
+
+import * as cr from '@/modules/manufacturing/textileCritical';
+textileTraceRouter.get('/textile/reports/critical-orders', validate({ query: cr.criticalQuerySchema }), h((r) => cr.criticalOrders(r.ctx, r.query)));
+import * as cn from '@/modules/manufacturing/textileCreditNote';
+textileTraceRouter.get('/textile/credit-notes', validate({ query: cn.noteQuerySchema }), h((r) => cn.listCreditNotes(r.ctx, r.query)));
+textileTraceRouter.post('/textile/claims/:id/credit-note', validate({ params: idParamSchema, body: cn.issueSchema }), h((r) => cn.issueCreditNote(r.ctx, id(r), r.body), 201));
+textileTraceRouter.post('/textile/credit-notes/:id/reverse', validate({ params: idParamSchema, body: cn.reverseSchema }), h((r) => cn.reverseCreditNote(r.ctx, id(r), r.body)));
+import * as lt from '@/modules/manufacturing/textileLots';
+textileTraceRouter.get('/textile/lots/card', validate({ query: lt.lotCardSchema }), h((r) => lt.lotCard(r.ctx, r.query)));
+textileTraceRouter.get('/textile/lots', validate({ query: lt.lotsSchema }), h((r) => lt.lotsSummary(r.ctx, r.query)));
+textileTraceRouter.get('/textile/reports/price-deviation', validate({ query: lt.priceDevSchema }), h((r) => lt.priceDeviation(r.ctx, r.query)));
+textileTraceRouter.get('/textile/reports/sales-by-payment', validate({ query: lt.payTypeSchema }), h((r) => lt.salesByPaymentType(r.ctx, r.query)));
+import * as li from '@/modules/manufacturing/textileLotIssue';
+textileTraceRouter.get('/textile/production-orders/:id/lots', validate({ params: idParamSchema }), h((r) => li.orderLots(r.ctx, id(r))));
+textileTraceRouter.get('/textile/production-orders/:id/lot-run', validate({ params: idParamSchema }), h((r) => li.lotRun(r.ctx, id(r))));
+textileTraceRouter.put('/textile/production-orders/:id/lines/:lineId/lots', validate({ params: idParamSchema.extend({ lineId: idParamSchema.shape.id }), body: li.setLotsSchema }), h((r) => li.setLineLots(r.ctx, id(r), String(r.params.lineId), r.body)));
+textileTraceRouter.get('/textile/production-orders/:id/lots/suggest', validate({ params: idParamSchema, query: li.suggestSchema }), h((r) => li.autoAllocate(r.ctx, id(r), { strategy: r.query.strategy }, false)));
+textileTraceRouter.post('/textile/production-orders/:id/lots/auto', validate({ params: idParamSchema, body: li.autoSchema }), h((r) => li.autoAllocate(r.ctx, id(r), r.body, true)));

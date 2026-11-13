@@ -1,0 +1,26 @@
+name: Security audit
+# Weekly + on demand: known-vulnerable dependencies (production deps only) and committed secrets.
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: npm audit (high+ , production deps)
+        working-directory: ${{ matrix.dir }}
+        run: npm audit --omit=dev --audit-level=high
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tools/secret-scan.mjs

@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# توجيه كل المسارات إلى index.html — إلزامي لأي SPA بتوجيه من جهة العميل (react-router-dom)،
+# وإلا يُرجع Netlify 404 عند تحديث الصفحة أو الدخول المباشر لرابط داخلي مثل /sales/invoices/123.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,23 @@
+import * as yl from '@/modules/manufacturing/yarnLedger';
+import * as fa from '@/modules/accounting/fixedAssetService';
+import * as fr from '@/modules/accounting/financialReports';
+import { pool } from '@/db/pool';
+import * as fs from 'fs';
+const Z = (n: string) => `00000000-0000-0000-0000-${n.padStart(12, '0')}`;
+const ctx: any = { companyId: Z('0000000000c1'), tenantId: Z('0000000000a1'), userId: Z('000000000f00'), assertPermission() {}, visibleBranchIds: () => null, assertBranchInScope() {} };
+(async () => {
+  const out: any = {};
+  const t = async (k: string, f: () => Promise<any>) => { try { out[k] = JSON.parse(JSON.stringify(await f())); } catch (e: any) { out[k] = { __err: e.message }; } };
+  await t('/textile/yarn-ledger', () => yl.ledger(ctx, {}));
+  await t('/textile/yarn-ledger/receipts', () => yl.listReceipts(ctx, {} as any));
+  await t('/textile/yarn-ledger/runs', () => yl.listRuns(ctx, {} as any));
+  await t('/assets', () => fa.listAssets(ctx, {} as any));
+  await t('/accounting/reports/aging', () => fr.agedBalances(ctx, { kind: 'receivable', asOf: '2026-12-31' } as any));
+  await t('/accounting/reports/income-statement', () => fr.incomeStatement(ctx, { from: '2026-01-01', to: '2026-12-31' } as any));
+  await t('/accounting/reports/balance-sheet', () => fr.balanceSheet(ctx, { asOf: '2026-12-31' } as any));
+  await t('/accounting/reports/vat-return', () => fr.vatReturn(ctx, { from: '2026-01-01', to: '2026-12-31' } as any));
+  await t('/accounting/reports/reorder', () => fr.reorderSuggestions(ctx, {} as any));
+  fs.writeFileSync('/tmp/smoke/fixtures1.json', JSON.stringify(out));
+  console.log(Object.entries(out).map(([k, v]: any) => k + ' ' + (v.__err ? 'ERR ' + v.__err : 'ok')).join('\n'));
+  process.exit(0);
+})();

@@ -1,0 +1,88 @@
+name: CI
+
+# يعمل عند كل push وعند كل Pull Request. المهمتان مستقلتان وتعملان بالتوازي.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (tsc + migrations + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: cobratex_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # backend/.env.test مُستبعَد من git عمدًا (.gitignore)، فتُمرَّر قيم الاختبار هنا صراحةً.
+    # هذه أسرار اختبار فقط ولا تُستخدَم في أي بيئة حقيقية.
+    env:
+      DATABASE_URL: postgresql://postgres:devpassword@localhost:5432/cobratex_test?schema=public
+      JWT_ACCESS_SECRET: test-only-access-secret
+      JWT_REFRESH_SECRET: test-only-refresh-secret
+      PORT: "4001"
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      # يشمل ملفات الاختبار أيضًا (tsconfig يضم src وtests).
+      - name: Type check
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: Build (يتحقق أن ناتج dist قابل للتشغيل بعد إصلاح المسارات المستعارة)
+        run: npm run build
+
+      - name: Run migrations
+        run: npm run migrate
+
+      - name: Run tests
+        run: npx vitest run
+
+  frontend:
+    name: Frontend (tsc + build + lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      - name: Type check
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
