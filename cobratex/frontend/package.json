@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "brand:apply": "node scripts/apply-brand.mjs",
-    "build": "node scripts/apply-brand.mjs && tsc -b && vite build",
+    "build": "node scripts/apply-brand.mjs && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
